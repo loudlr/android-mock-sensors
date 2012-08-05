@@ -23,9 +23,6 @@ public class RecordVideoIntent extends Activity {
     	
     	if ( MY_RESULT == RESULT_OK )
     	{
-    		//dati ritornati
-        	Intent i = new Intent();
-        		    	
         	Uri saveUri = null;        	
 	    	if (this.getIntent().getExtras() != null)
 	    		saveUri = this.getIntent().getExtras().getParcelable(it.unina.android.provider.MediaStore.EXTRA_OUTPUT);
@@ -37,11 +34,16 @@ public class RecordVideoIntent extends Activity {
 	    	else
 	    	{	    		
 	    		copyAssetToSD(this.getApplicationContext(), "video.mp4");
-	    		saveUri = Uri.parse(new File("/sdcard/video.mp4").toString());
+	    		saveUri = Uri.fromFile(new File("/sdcard/video.mp4"));
 	    	}
 	    	
-	    	setResult(RESULT_OK, new Intent("inline-data").putExtra(it.unina.android.provider.MediaStore.EXTRA_OUTPUT, saveUri));
-	    
+	    	//Log.v("SaveURI", "saveuri=" + saveUri.toString());
+	    	
+	    	Intent intent = new Intent("inline-data");
+	    	intent.putExtra(it.unina.android.provider.MediaStore.EXTRA_OUTPUT, saveUri);
+	    	intent.putExtra("data", saveUri);
+	    	intent.setData(saveUri);
+	    	setResult(RESULT_OK, intent);	    	
     	}
     	else
     	{
