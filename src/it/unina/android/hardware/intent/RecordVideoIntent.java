@@ -7,14 +7,22 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore.Video;
+import android.text.format.DateFormat;
 import android.util.Log;
 
 public class RecordVideoIntent extends Activity {
 	public static int MY_RESULT = RESULT_OK;
+
+	public Uri saveUri = null;
 	
     /** Called when the activity is first created. */
     @Override
@@ -23,34 +31,67 @@ public class RecordVideoIntent extends Activity {
     	
     	if ( MY_RESULT == RESULT_OK )
     	{
-        	Uri saveUri = null;        	
+        	//Uri saveUri = null;        	
 	    	if (this.getIntent().getExtras() != null)
 	    		saveUri = this.getIntent().getExtras().getParcelable(it.unina.android.provider.MediaStore.EXTRA_OUTPUT);
-	    
+	    	
 	    	if (saveUri != null)
 	    	{
-	    		copyAssetToURI(this.getApplicationContext(), "video.mp4", saveUri);
+	    		ContentValues values = new ContentValues(7);
+	    		values.put(Video.Media.TITLE, saveUri.getLastPathSegment());
+	    		values.put(Video.Media.DISPLAY_NAME, saveUri.getLastPathSegment());
+	    		values.put(Video.Media.DESCRIPTION, "");
+	    		values.put(Video.Media.DATE_TAKEN, new java.util.Date().toLocaleString());
+	    		values.put(Video.Media.MIME_TYPE, "video/3gpp");
+	    		values.put(Video.Media.DATA, saveUri.toString());	    		
+
+	    		copyAssetToURI(this.getApplicationContext(), "video.3gp", saveUri);
+	    		saveUri = getContentResolver().insert(saveUri, values);
 	    	}
 	    	else
-	    	{	    		
-	    		copyAssetToSD(this.getApplicationContext(), "video.mp4");
-	    		saveUri = Uri.fromFile(new File("/sdcard/video.mp4"));
+	    	{	
+	    		String cameraDirPath = "/sdcard/DCIM/Camera";
+	    		File cameraDir  = new File(cameraDirPath);
+	    		cameraDir.mkdirs();
+	    		
+	    		long dateTaken = System.currentTimeMillis();	    		
+	    		String title = DateFormat.format("yyyy-MM-dd_kk.mm.ss", dateTaken).toString();
+	    		String displayName = "VID_" + title + ".3gp";	    		
+	    		String filename = cameraDirPath + "/" + displayName;
+	    		
+	    		ContentValues values = new ContentValues(7);
+	    		values.put(Video.Media.TITLE, title);
+	    		values.put(Video.Media.DISPLAY_NAME, displayName);
+	    		values.put(Video.Media.DESCRIPTION, "");
+	    		values.put(Video.Media.DATE_TAKEN, dateTaken);
+	    		values.put(Video.Media.MIME_TYPE, "video/3gpp");
+	    		values.put(Video.Media.DATA, filename);	    		
+	    		
+	    		copyAssetToSD(this.getApplicationContext(), "video.3gp");
+	    		new File("/sdcard/video.3gp").renameTo( new File(filename) );
+	    		
+	    		//saveUri = Uri.fromFile(new File(filename));
+	    		Uri videoTable = Uri.parse("content://media/external/video/media");
+	    		saveUri = getContentResolver().insert(videoTable, values);
 	    	}
 	    	
-	    	//Log.v("SaveURI", "saveuri=" + saveUri.toString());
-	    	
-	    	Intent intent = new Intent("inline-data");
+	    	Intent intent = new Intent();
 	    	intent.putExtra(it.unina.android.provider.MediaStore.EXTRA_OUTPUT, saveUri);
 	    	intent.putExtra("data", saveUri);
 	    	intent.setData(saveUri);
 	    	setResult(RESULT_OK, intent);	    	
+	    	this.finish();
     	}
     	else
     	{
-    		this.setResult(MY_RESULT);
+    		this.setResult(MY_RESULT);    		
     	}
     	
     	this.finish();
+    }
+
+    private void returnIntent()
+    {
     }
     
     private void copyAssetToSD(Context ctx, String filename) {
@@ -98,4 +139,31 @@ public class RecordVideoIntent extends Activity {
           out.write(buffer, 0, read);
         }
     }
+
+    private void startMediaScanner()
+    {
+        IntentFilter intentFilter = new IntentFilter(Intent.ACTION_MEDIA_SCANNER_STARTED);
+        intentFilter.addAction(Intent.ACTION_MEDIA_SCANNER_FINISHED);
+        intentFilter.addDataScheme("file");
+        registerReceiver(mReceiver, intentFilter);
+        
+        sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED, Uri.parse("file://"
+                + Environment.getExternalStorageDirectory())));
+    }
+    
+    /** Called when the activity going into the background or being destroyed. */
+    @Override
+    public void onPause() {
+        super.onPause();
+        unregisterReceiver(mReceiver);
+    }
+    
+    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+        	if (intent.getAction().equals(Intent.ACTION_MEDIA_SCANNER_FINISHED))
+        		returnIntent();
+        }
+    };
+    
 }
