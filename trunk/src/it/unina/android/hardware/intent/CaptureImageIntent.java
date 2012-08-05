@@ -56,7 +56,7 @@ public class CaptureImageIntent extends Activity {
 	    	{
 	    		Bitmap preview = this.loadImageFromAsset(getApplicationContext(), "preview.jpg");
 	    		setResult(RESULT_OK, new Intent("inline-data").putExtra("data", preview));	    		
-	    	}	    	
+	    	}
     	}
     	else
     	{
