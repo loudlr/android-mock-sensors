@@ -127,6 +127,11 @@ public class SensorManager
 		}
 	}
 	
+	public boolean hasRegisteredSensorListener()
+	{
+		return (this.listeners != null && this.listeners.size() > 0);
+	}
+	
 	public List<Sensor> getSensorList(int type)
 	{
 		ArrayList<Sensor> ret = new ArrayList<Sensor>();
