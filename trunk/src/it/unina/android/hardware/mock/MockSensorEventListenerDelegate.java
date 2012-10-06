@@ -49,7 +49,6 @@ public class MockSensorEventListenerDelegate
 		{
 			//TODO: verifica sia passato il trascorso il delay
 			//...
-			
 			this.listener.onSensorChanged(event);
 		}
 	}

@@ -22,7 +22,7 @@ public class MockSensorManager
 	
 	/* ABILITAZIONE SENSORI */
 	public static boolean ACCELEROMETER_ENABLED = true;
-	public static boolean ORIENTATION_ENABLED = false;
+	public static boolean ORIENTATION_ENABLED = true;
 	public static boolean MAGNETIC_FIELD_ENABLED = true;
 	public static boolean AMBIENT_TEMPERATURE_ENABLED = true;
 	public static boolean TEMPERATURE_ENABLED = true;
@@ -142,12 +142,29 @@ public class MockSensorManager
 	/* PER IL TESTING */
 	public void riseSensorEvent(MockSensorEvent event)
 	{
-		for(MockSensorEventListenerDelegate l: this.listeners)
-			l.riseEvent(event);
+		if (event != null && event.sensor != null && event.values != null && event.values.length == 3)
+			Log.v(TAG, "SENSOR_EVENT [Sensor="+event.sensor.getName()+"][values={"+event.values[0]+", "+event.values[1]+", "+event.values[2]+"}]");
+		else if (event != null && event.sensor != null && event.values != null && event.values.length < 3)
+			Log.v(TAG, "SENSOR_EVENT: event with incorrect values[] length!");
+		else if (event != null && event.sensor != null && event.values == null)
+				Log.v(TAG, "SENSOR_EVENT: event with no values!");		
+		else if (event != null && event.sensor == null && event.values != null && event.values.length == 3)
+			Log.v(TAG, "SENSOR_EVENT: event with no sensor!");
+		else
+			Log.v(TAG, "SENSOR_EVENT: null event!");
+		
+		if (event != null)
+			for(MockSensorEventListenerDelegate l: this.listeners)
+				l.riseEvent(event);
 	}
 	
 	public void riseAccuracyEvent(MockSensor sensor, int accuracy)
 	{
+		if (sensor != null)
+			Log.v(TAG, "SENSOR_ACCURACY_EVENT [Sensor="+sensor.getName()+"][accuracy="+accuracy+"]");
+		else
+			Log.v(TAG, "SENSOR_ACCURACY_EVENT: event with no sensor!");
+		
 		for(MockSensorEventListenerDelegate l: this.listeners)
 			l.riseAccuracyEvent(sensor, accuracy);
 	}
