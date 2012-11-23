@@ -1,58 +1,49 @@
 package it.unina.android.hardware;
 
-import it.unina.android.hardware.mock.MockSensor;
-import it.unina.android.hardware.mock.MockSensorManager;
+
+import it.unina.android.hardware.Sensor;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import android.content.Context;
 import android.os.Handler;
+import android.util.Log;
 
 public class SensorManager
 {	
-	public static boolean TESTING = true;
-	
 	/* TAG PER IL LOG */
-	private static final String TAG = "MySensorManager";
+	private static final String TAG = "SensorManagerMock";
+		
+	/* ABILITAZIONE SENSORI */
+	public static boolean ACCELEROMETER_ENABLED = true;
+	public static boolean ORIENTATION_ENABLED = true;
+	public static boolean MAGNETIC_FIELD_ENABLED = true;
+	public static boolean AMBIENT_TEMPERATURE_ENABLED = true;
+	public static boolean TEMPERATURE_ENABLED = true;
+	//TODO: gli altri sensori
 	
-	/* istanze sensori */
+	
+	/* Istanze dei sensori */
 	private HashMap<Integer, Sensor> sensorsList = null;
-	
+
 	/* INSTANZA SINGLETON */
 	private static SensorManager singleton;
-	
 	public static SensorManager getInstance()
-	{	
-		return SensorManager.getInstance(null);
-	}
-	
-	public static SensorManager getInstance(Context context)
 	{
-		if (context != null && SensorManager.singleton == null)
-			SensorManager.singleton = new SensorManager(context);
+		if (SensorManager.singleton == null)
+			SensorManager.singleton = new SensorManager();
 		
 		return SensorManager.singleton;
 	}
 	
-	private Context context;
-	private android.hardware.SensorManager realSensorManager;
-	private MockSensorManager mockSensorManager;
-	
 	/* LISTENERS DEGLI EVENTI DEI SENSORI */
 	public ArrayList<SensorEventListenerDelegate> listeners = null;
 	
-	private SensorManager(Context context)
+	private SensorManager()
 	{
-		this.context = context;
-		this.listeners = new ArrayList<SensorEventListenerDelegate>();
 		sensorsList = new HashMap<Integer, Sensor>();
-		
-		if (SensorManager.TESTING)
-			this.mockSensorManager = MockSensorManager.getInstance();
-		else
-			this.realSensorManager = (android.hardware.SensorManager)context.getSystemService(Context.SENSOR_SERVICE);
+		this.listeners = new ArrayList<SensorEventListenerDelegate>();
 	}
 	
 	public boolean registerListener(SensorEventListener listener, Sensor sensor, int rate)
@@ -60,18 +51,7 @@ public class SensorManager
 		if (listener == null || sensor == null)
 			return false;
 		
-		SensorEventListenerDelegate delegate = new SensorEventListenerDelegate(listener, sensor, rate);
-		
-		if (SensorManager.TESTING)
-		{			
-			this.mockSensorManager.registerListener(delegate, sensor.getMockSensor(), rate);
-		}
-		else
-		{
-			this.realSensorManager.registerListener(delegate, sensor.getRealSensor(), rate);
-		}
-		
-		this.listeners.add(delegate);		
+		this.listeners.add(new SensorEventListenerDelegate(listener, sensor, rate));		
 		return true;
 	}
 		
@@ -80,24 +60,11 @@ public class SensorManager
 		if (listener == null || sensor == null)
 			return;
 		
-		SensorEventListenerDelegate delegate = null;
 		for (int index = 0; index < this.listeners.size(); index++)
 		{
-			delegate = this.listeners.get(index);
-			if(delegate.getListener() == listener && delegate.getSensor().getType() == sensor.getType())
+			SensorEventListenerDelegate l = this.listeners.get(index);
+			if(l.getListener() == listener && l.getSensor().getType() == sensor.getType())
 				this.listeners.remove(index);
-		}
-		
-		if (delegate != null)
-		{
-			if (SensorManager.TESTING)
-			{			
-				this.mockSensorManager.unregisterListener(delegate, sensor.getMockSensor());
-			}
-			else
-			{
-				this.realSensorManager.unregisterListener(delegate, sensor.getRealSensor());
-			}
 		}
 	}
 	
@@ -106,25 +73,12 @@ public class SensorManager
 		if (listener == null)
 			return;
 		
-		SensorEventListenerDelegate delegate = null;
 		for (int index = 0; index < this.listeners.size(); index++)
 		{
-			delegate = this.listeners.get(index);
-			if(delegate.getListener() == listener)
+			SensorEventListenerDelegate l = this.listeners.get(index);
+			if(l.getListener() == listener)
 				this.listeners.remove(index);
-		}
-		
-		if (delegate != null)
-		{
-			if (SensorManager.TESTING)
-			{			
-				this.mockSensorManager.unregisterListener(delegate);
-			}
-			else
-			{
-				this.realSensorManager.unregisterListener(delegate);
-			}			
-		}
+		}		
 	}
 	
 	public boolean hasRegisteredSensorListener()
@@ -134,56 +88,85 @@ public class SensorManager
 	
 	public List<Sensor> getSensorList(int type)
 	{
-		ArrayList<Sensor> ret = new ArrayList<Sensor>();
+		ArrayList<Sensor> sensors = new ArrayList<Sensor>();
 		
-		if (SensorManager.TESTING)
-		{	
-			List<MockSensor> list = this.mockSensorManager.getSensorList(type);
-			for (MockSensor mockSensor : list)
-				ret.add( getDefaultSensor(mockSensor.getType()) );
+		if (type != Sensor.TYPE_ALL)
+		{
+			Sensor m = this.getDefaultSensor(type);
+			if (m != null)
+				sensors.add( m );
 		}
 		else
 		{
-			List<android.hardware.Sensor> list = this.realSensorManager.getSensorList(type);
-			for (android.hardware.Sensor sensor : list)
-				ret.add( getDefaultSensor(sensor.getType()) );
+			//TODO: aggiungere gli altri sensori...
+			if (SensorManager.ACCELEROMETER_ENABLED) sensors.add( this.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) );
+			if (SensorManager.ORIENTATION_ENABLED) sensors.add( this.getDefaultSensor(Sensor.TYPE_ORIENTATION) );
+			if (SensorManager.MAGNETIC_FIELD_ENABLED) sensors.add( this.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) );
+			if (SensorManager.TEMPERATURE_ENABLED) sensors.add( this.getDefaultSensor(Sensor.TYPE_TEMPERATURE) );
+			if (SensorManager.AMBIENT_TEMPERATURE_ENABLED) sensors.add( this.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE) );
 		}
 		
-		return ret;
+		return sensors;
 	}	
-	
+		
 	public Sensor getDefaultSensor(int type)
 	{
-		Sensor ret = sensorsList.get(type);
+		Sensor ret = null;
 
-		if (ret == null)
+		//TODO: aggiungere gli altri sensori...
+		if  (
+				(SensorManager.ACCELEROMETER_ENABLED && type == Sensor.TYPE_ACCELEROMETER) ||
+				(SensorManager.ORIENTATION_ENABLED  && type == Sensor.TYPE_ORIENTATION) ||
+				(SensorManager.MAGNETIC_FIELD_ENABLED && type == Sensor.TYPE_MAGNETIC_FIELD) ||
+				(SensorManager.TEMPERATURE_ENABLED && type == Sensor.TYPE_TEMPERATURE) ||
+				(SensorManager.AMBIENT_TEMPERATURE_ENABLED && type == Sensor.TYPE_AMBIENT_TEMPERATURE)
+			)
 		{
-			if (SensorManager.TESTING)
+			ret = sensorsList.get(type);
+			
+			if (ret == null)
 			{
-				MockSensor mockSensor = this.mockSensorManager.getDefaultSensor(type);
-				if (mockSensor != null)
-				{
-					ret = new Sensor(mockSensor);
-					sensorsList.put(type, ret);
-				}
-			}
-			else
-			{
-				android.hardware.Sensor sensor = this.realSensorManager.getDefaultSensor(type);
-				if (sensor != null)
-				{
-					ret = new Sensor(sensor);
-					sensorsList.put(type, ret);
-				}
+				ret = new Sensor(type);
+				sensorsList.put(type, ret);
 			}
 		}
-
-		return ret;
-	}
 		
+		return ret;		
+	}
+	
 	public void clearSensorsList()
 	{
 		sensorsList.clear();
+	}
+		
+	/* PER IL TESTING */
+	public void riseSensorEvent(SensorEvent event)
+	{
+		if (event != null && event.sensor != null && event.values != null && event.values.length == 3)
+			Log.v(TAG, "SENSOR_EVENT [Sensor="+event.sensor.getName()+"][values={"+event.values[0]+", "+event.values[1]+", "+event.values[2]+"}]");
+		else if (event != null && event.sensor != null && event.values != null && event.values.length < 3)
+			Log.v(TAG, "SENSOR_EVENT: event with incorrect values[] length!");
+		else if (event != null && event.sensor != null && event.values == null)
+				Log.v(TAG, "SENSOR_EVENT: event with no values!");		
+		else if (event != null && event.sensor == null && event.values != null && event.values.length == 3)
+			Log.v(TAG, "SENSOR_EVENT: event with no sensor!");
+		else
+			Log.v(TAG, "SENSOR_EVENT: null event!");
+		
+		if (event != null)
+			for(SensorEventListenerDelegate l: this.listeners)
+				l.riseEvent(event);
+	}
+	
+	public void riseAccuracyEvent(Sensor sensor, int accuracy)
+	{
+		if (sensor != null)
+			Log.v(TAG, "SENSOR_ACCURACY_EVENT [Sensor="+sensor.getName()+"][accuracy="+accuracy+"]");
+		else
+			Log.v(TAG, "SENSOR_ACCURACY_EVENT: event with no sensor!");
+		
+		for(SensorEventListenerDelegate l: this.listeners)
+			l.riseAccuracyEvent(sensor, accuracy);
 	}
 	
 	/* Altre funzioni e costanti dal SensorManager reale */

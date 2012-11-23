@@ -109,114 +109,110 @@ public class Sensor
      */
     public static final int TYPE_ALL = -1;
     
-    private it.unina.android.hardware.mock.MockSensor mockSensor;
-    private android.hardware.Sensor realSensor;
+    private String  mName;
+    private String  mVendor;
+    private int     mVersion;
+    private int     mHandle;
+    private int     mType;
+    private float   mMaxRange;
+    private float   mResolution;
+    private float   mPower;
+    private int     mMinDelay;
+    private int     mLegacyType;
 
-    protected Sensor() {
+
+    public Sensor() {
     	
-    }  
-    
-    protected Sensor(it.unina.android.hardware.mock.MockSensor sensor) {
-    	this.mockSensor = sensor;
-    	this.realSensor = null;
     }
 
-    protected Sensor(android.hardware.Sensor sensor) {
-    	this.realSensor = sensor;
-    	this.mockSensor = null;
+    public Sensor(int type) {
+    	this.mName = "Simulator";
+    	this.mVendor = "Unina";
+    	this.mVersion = 1;
+    	
+    	//TODO: questi valori potrebbero dover essere cambiati
+    	this.mMaxRange = 1.0f;
+    	this.mResolution = 1.0f;
+    	this.mPower = 1.0f;
+    	this.mMinDelay = 0;
+    	
+    	this.mType = type;    	
+    	//this.mLegacyType = type;
     }    
     
     /**
      * @return name string of the sensor.
      */
     public String getName() {
-        if (this.realSensor != null)
-        	return this.realSensor.getName();
-        else if (this.mockSensor != null)
-        	return this.mockSensor.getName();
-        else
-        	return null; //NOTA: qui ci vorrebbe throw new SensorNotFoundException()
+        return mName;
     }
 
     /**
      * @return vendor string of this sensor.
      */
     public String getVendor() {
-        if (this.realSensor != null)
-        	return this.realSensor.getVendor();
-        else if (this.mockSensor != null)
-        	return this.mockSensor.getVendor();
-        else
-        	return null;
+        return mVendor;
     }
 
     /**
      * @return generic type of this sensor.
      */
     public int getType() {
-        if (this.realSensor != null)
-        	return this.realSensor.getType();
-        else if (this.mockSensor != null)
-        	return this.mockSensor.getType();
-        else
-        	return 0;
+        return mType;
     }
 
     /**
      * @return version of the sensor's module.
      */
     public int getVersion() {
-        if (this.realSensor != null)
-        	return this.realSensor.getVersion();
-        else if (this.mockSensor != null)
-        	return this.mockSensor.getVersion();
-        else
-        	return 0;
+        return mVersion;
     }
 
     /**
      * @return maximum range of the sensor in the sensor's unit.
      */
     public float getMaximumRange() {
-        if (this.realSensor != null)
-        	return this.realSensor.getMaximumRange();
-        else if (this.mockSensor != null)
-        	return this.mockSensor.getMaximumRange();
-        else
-        	return 0;
+        return mMaxRange;
     }
 
     /**
      * @return resolution of the sensor in the sensor's unit.
      */
     public float getResolution() {
-        if (this.realSensor != null)
-        	return this.realSensor.getResolution();
-        else if (this.mockSensor != null)
-        	return this.mockSensor.getResolution();
-        else
-        	return 0;
+        return mResolution;
     }
 
     /**
      * @return the power in mA used by this sensor while in use
      */
     public float getPower() {
-        if (this.realSensor != null)
-        	return this.realSensor.getPower();
-        else if (this.mockSensor != null)
-        	return this.mockSensor.getPower();
-        else
-        	return 0;
+        return mPower;
     }
-    
-    public it.unina.android.hardware.mock.MockSensor getMockSensor()
-    {
-    	return this.mockSensor;
+
+    /**
+     * @return the minimum delay allowed between two events in microsecond
+     * or zero if this sensor only returns a value when the data it's measuring
+     * changes.
+     */
+    public int getMinDelay() {
+        return mMinDelay;
     }
-    
-    public android.hardware.Sensor getRealSensor()
-    {
-    	return this.realSensor;
+
+    int getHandle() {
+        return mHandle;
     }
+
+    void setRange(float max, float res) {
+        mMaxRange = max;
+        mResolution = res;
+    }
+
+    void setLegacyType(int legacyType) {
+        mLegacyType = legacyType;
+    }
+
+    int getLegacyType() {
+        return mLegacyType;
+    }
+	
 }
